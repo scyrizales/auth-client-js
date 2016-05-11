@@ -1,21 +1,40 @@
 import request from 'superagent';
 import promise from 'superagent-promise-plugin';
+import SessionStore from './sessionStore';
 
 function now() {
   return Math.floor((new Date()).getTime() / 1000);
 }
 
 export default class Client {
+  static TOK = "tok";
+
   constructor(config, refresh_token) {
     this.config = config;
-    this.tokens = {refresh_token};
+    this.store = new SessionStore(window.localStorage);
+    this.tokens = this._setOrRestoreTokens(refresh_token);
+  }
+
+  _setOrRestoreTokens(refresh_token) {
+    const storedTokens = this.store.getObject(Client.TOK);
+    if (refresh_token)
+        return {refresh_token};
+    if (storedTokens)
+        return {storedTokens};
+    return {};
   }
 
   _tokens(tokens) {
     this.tokens = tokens;
     this.interval = this.tokens.expires_in;
     this.expires = now() + this.interval;
+    this.store.setObject(Client.TOK, this.tokens);
     return this.tokens;
+  }
+
+  _clearTokens() {
+    this.tokens = null;
+    this.store.setObject(Client.TOK, null);
   }
 
   async login(username, password) {
@@ -58,8 +77,10 @@ export default class Client {
         .set('authorization', 'Bearer ' + access_token)
         .use(promise)
         .end();
-      if (response.status == 204)
+      if (response.status == 204){
+        this._clearTokens();
         return true;
+    }
       else
         throw response.error;
     }
@@ -69,7 +90,7 @@ export default class Client {
     if (this.tokens && this.expires && this.interval &&
         this.expires - now() > 0.5 * this.interval)
       return true;
-    else 
+    else
       return this.refresh();
   }
 }

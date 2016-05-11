@@ -3,6 +3,7 @@
   "description": "client for realmassive auth service",
   "repository": "https://github.com/RealMassive/auth-client-js",
   "dependencies": {
+    "mock-browser": "^0.92.11",
     "superagent": "^1.8.0",
     "superagent-promise-plugin": "^2.1.0"
   },
